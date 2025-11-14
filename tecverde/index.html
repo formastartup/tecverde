@@ -1,0 +1,437 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+
+    <!-- Material Tailwind (HTML) -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@material-tailwind/html@latest/styles/material-tailwind.css"
+    />
+  </head>
+
+  <body class="bg-gray-200 p-10">
+
+    <!-- ===================== FORM ===================== -->
+    <form
+      id="main-form"
+      class="mx-auto max-w-md space-y-4 rounded-lg border border-gray-300 bg-gray-100 p-6"
+    >
+
+      <!-- CPF -->
+      <div>
+        <label class="block text-sm font-medium text-gray-900" for="cpf">CPF</label>
+        <input
+          class="mt-1 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:outline-none"
+          id="cpf"
+          type="text"
+          maxlength="14"
+          placeholder="000.000.000-00"
+        >
+        <p id="cpf-error" class="mt-1 text-sm text-red-600 hidden">
+          CPF inválido.
+        </p>
+      </div>
+
+      <!-- OBRA -->
+      <label>
+        <span class="text-sm font-medium text-gray-900">Obra</span>
+
+        <div class="relative">
+          <input
+            type="text"
+            id="Search"
+            class="mt-0.5 w-full rounded border-gray-300 pe-10 shadow-sm sm:text-sm"
+            autocomplete="off"
+            placeholder="Pesquisar..."
+          >
+
+          <!-- Ícone que abre o modal -->
+          <span class="absolute inset-y-0 right-2 grid w-8 place-content-center">
+            <button
+              id="open-select-modal"
+              type="button"
+              class="rounded-full p-1.5 text-gray-700 transition-colors hover:bg-gray-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+            </button>
+          </span>
+
+          <ul
+            id="Suggestions"
+            class="absolute z-10 w-full bg-white border border-gray-300 rounded mt-1 shadow hidden max-h-40 overflow-y-auto"
+          ></ul>
+        </div>
+
+        <p id="obra-error" class="mt-1 text-sm text-red-600 hidden">
+          Selecione uma obra válida.
+        </p>
+      </label>
+
+      <button
+        class="block w-full rounded-lg border border-indigo-600 bg-indigo-600 px-12 py-3 text-sm font-medium text-white transition-colors hover:bg-transparent hover:text-indigo-600"
+        type="submit"
+      >
+        Solicitar
+      </button>
+
+    </form>
+
+    <!-- ===================== MODAL CONFIRMAÇÃO ===================== -->
+    <div
+      id="modal-backdrop"
+      class="fixed inset-0 z-50 grid place-content-center bg-black/50 p-4 opacity-0 pointer-events-none transition-opacity duration-300"
+    >
+      <div
+        id="modal"
+        class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg scale-95 opacity-0 transition-all duration-300"
+      >
+        <h2 class="text-xl font-bold text-gray-900 sm:text-2xl">
+          Solicitação enviada!
+        </h2>
+
+        <p class="mt-4 text-gray-700">
+          Sua solicitação foi registrada com sucesso.
+        </p>
+
+        <div class="mt-6 text-right">
+          <button
+            id="close-modal"
+            class="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== MODAL DE SELEÇÃO ===================== -->
+    <div
+      id="select-backdrop"
+      class="fixed inset-0 z-[60] grid place-items-center bg-black/50 p-4 opacity-0 pointer-events-none transition-opacity duration-300"
+    >
+      <div
+        id="select-modal"
+        class="w-full max-w-[900px] rounded-lg bg-white p-6 shadow-lg scale-95 opacity-0 transition-all duration-300"
+      >
+        <h2 class="text-lg font-semibold text-gray-900 sm:text-xl">
+          Selecione a obra
+        </h2>
+
+        <input
+          id="modal-search"
+          type="text"
+          class="mt-4 w-full rounded border-gray-300 shadow-sm"
+          placeholder="Pesquisar obra..."
+        >
+
+        <ul
+          id="select-list"
+          class="mt-4 border rounded max-h-64 overflow-y-auto divide-y"
+        ></ul>
+
+        <!-- Paginação -->
+        <div class="mt-4 flex justify-center">
+          <ul id="pagination" class="flex justify-center gap-1 text-gray-900 select-none"></ul>
+        </div>
+
+        <div class="mt-6 text-right">
+          <button
+            id="close-select-modal"
+            class="rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SCRIPT ===================== -->
+    <script>
+      const cpf = document.getElementById("cpf");
+      const cpfError = document.getElementById("cpf-error");
+
+      const input = document.getElementById("Search");
+      const list = document.getElementById("Suggestions");
+      const errorText = document.getElementById("obra-error");
+      const form = document.getElementById("main-form");
+      const selectBtn = document.getElementById("open-select-modal");
+
+      const obras = [
+        "Alphaville - L11", "Alphaville - Obra",
+        "Obra 3","Obra 4","Obra 5",
+        "Obra 6","Obra 7","Obra 8",
+        "Obra 9","Obra 10","Obra 11",
+        "Obra 12","Obra 13","Obra 14",
+        "Obra 15","Obra 16","Obra 17",
+        "Obra 18","Obra 19","Obra 20"
+      ];
+
+      /* =======================================================
+         FORMATAÇÃO AUTOMÁTICA CPF
+      ======================================================= */
+      cpf.addEventListener("input", () => {
+        let v = cpf.value.replace(/\D/g, "");
+
+        if (v.length > 11) v = v.slice(0, 11);
+
+        if (v.length >= 3) v = v.replace(/(\d{3})(\d)/, "$1.$2");
+        if (v.length >= 6) v = v.replace(/(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+        if (v.length >= 9) v = v.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
+
+        cpf.value = v;
+      });
+
+      function validarCPF(valor) {
+        const num = valor.replace(/\D/g, "");
+        return num.length === 11;
+      }
+
+      cpf.addEventListener("blur", () => {
+        if (!validarCPF(cpf.value)) cpfError.classList.remove("hidden");
+        else cpfError.classList.add("hidden");
+      });
+
+      /* =======================================================
+         AUTOCOMPLETE CAMPO OBRA
+      ======================================================= */
+      function renderList(items) {
+        list.innerHTML = "";
+        items.forEach(opt => {
+          const li = document.createElement("li");
+          li.textContent = opt;
+          li.className = "p-2 hover:bg-gray-100 cursor-pointer";
+          li.onclick = () => {
+            input.value = opt;
+            errorText.classList.add("hidden");
+            list.classList.add("hidden");
+          };
+          list.appendChild(li);
+        });
+        list.classList.remove("hidden");
+      }
+
+      input.addEventListener("focus", () => renderList(obras));
+
+      input.addEventListener("input", () => {
+        const v = input.value.toLowerCase();
+        if (!v) return renderList(obras);
+
+        const f = obras.filter(opt => opt.toLowerCase().includes(v));
+        if (!f.length) return list.classList.add("hidden");
+
+        renderList(f);
+      });
+
+      input.addEventListener("blur", () => {
+        setTimeout(() => {
+          if (!obras.includes(input.value)) {
+            input.value = "";
+            errorText.classList.remove("hidden");
+          }
+          list.classList.add("hidden");
+        }, 200);
+      });
+
+      /* =======================================================
+         MODAL CONFIRMAÇÃO
+      ======================================================= */
+      const modalBackdrop = document.getElementById("modal-backdrop");
+      const modal = document.getElementById("modal");
+      const closeModalBtn = document.getElementById("close-modal");
+
+      function openModal() {
+        modalBackdrop.classList.remove("opacity-0", "pointer-events-none");
+        modalBackdrop.classList.add("opacity-100");
+
+        setTimeout(() => {
+          modal.classList.remove("scale-95", "opacity-0");
+          modal.classList.add("scale-100", "opacity-100");
+        }, 20);
+      }
+
+      function closeModal() {
+        modal.classList.add("scale-95", "opacity-0");
+        modal.classList.remove("scale-100", "opacity-100");
+
+        setTimeout(() => {
+          modalBackdrop.classList.add("opacity-0", "pointer-events-none");
+          modalBackdrop.classList.remove("opacity-100");
+        }, 200);
+      }
+
+      closeModalBtn.addEventListener("click", closeModal);
+
+      modalBackdrop.addEventListener("mousedown", e => {
+        if (e.target === modalBackdrop) closeModal();
+      });
+
+      /* =======================================================
+         MODAL SELEÇÃO (PESQUISA + PAGINAÇÃO)
+      ======================================================= */
+      const selectBackdrop = document.getElementById("select-backdrop");
+      const selectModal = document.getElementById("select-modal");
+      const selectCloseBtn = document.getElementById("close-select-modal");
+      const selectList = document.getElementById("select-list");
+      const modalSearch = document.getElementById("modal-search");
+      const pagination = document.getElementById("pagination");
+
+      const perPage = 5;
+      let page = 1;
+      let filtered = [...obras];
+
+      function renderPagination() {
+        pagination.innerHTML = "";
+        const totalPages = Math.ceil(filtered.length / perPage);
+
+        // Prev button
+        const prev = document.createElement("li");
+        prev.innerHTML = `
+          <button class="grid size-8 place-content-center rounded border border-gray-200 hover:bg-gray-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-4"
+              viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd"
+                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293
+                3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0
+                010-1.414l4-4a1 1 0 011.414 0z"
+                clip-rule="evenodd"></path>
+            </svg>
+          </button>
+        `;
+        if (page > 1) prev.onclick = () => { page--; renderSelectList(); };
+        else prev.classList.add("opacity-40", "pointer-events-none");
+        pagination.appendChild(prev);
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+          const li = document.createElement("li");
+
+          if (i === page) {
+            li.className =
+              "block size-8 rounded border border-indigo-600 bg-indigo-600 text-center text-sm/8 font-medium text-white";
+            li.textContent = i;
+          } else {
+            li.className =
+              "block size-8 rounded border border-gray-200 text-center text-sm/8 font-medium hover:bg-gray-50 cursor-pointer";
+            li.textContent = i;
+            li.onclick = () => { page = i; renderSelectList(); };
+          }
+          pagination.appendChild(li);
+        }
+
+        // Next button
+        const next = document.createElement("li");
+        next.innerHTML = `
+          <button class="grid size-8 place-content-center rounded border border-gray-200 hover:bg-gray-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-4"
+              viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586
+                10 7.293 6.707a1 1 0 011.414-1.414l4
+                4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414
+                0z"
+                clip-rule="evenodd"></path>
+            </svg>
+          </button>
+        `;
+        if (page < totalPages) next.onclick = () => { page++; renderSelectList(); };
+        else next.classList.add("opacity-40", "pointer-events-none");
+
+        pagination.appendChild(next);
+      }
+
+      function renderSelectList() {
+        const start = (page - 1) * perPage;
+        const end = start + perPage;
+        const slice = filtered.slice(start, end);
+
+        selectList.innerHTML = "";
+
+        slice.forEach(opt => {
+          const li = document.createElement("li");
+          li.textContent = opt;
+          li.className = "p-3 hover:bg-gray-100 cursor-pointer";
+          li.onclick = () => {
+            input.value = opt;
+            errorText.classList.add("hidden");
+            closeSelectModal();
+          };
+          selectList.appendChild(li);
+        });
+
+        renderPagination();
+      }
+
+      modalSearch.addEventListener("input", () => {
+        filtered = obras.filter(o =>
+          o.toLowerCase().includes(modalSearch.value.toLowerCase())
+        );
+        page = 1;
+        renderSelectList();
+      });
+
+      function openSelectModal() {
+        selectBackdrop.classList.remove("opacity-0", "pointer-events-none");
+        selectBackdrop.classList.add("opacity-100");
+
+        modalSearch.value = "";
+        filtered = [...obras];
+        page = 1;
+        renderSelectList();
+
+        setTimeout(() => {
+          selectModal.classList.remove("scale-95", "opacity-0");
+          selectModal.classList.add("scale-100", "opacity-100");
+        }, 20);
+      }
+
+      function closeSelectModal() {
+        selectModal.classList.add("scale-95", "opacity-0");
+        selectModal.classList.remove("scale-100", "opacity-100");
+
+        setTimeout(() => {
+          selectBackdrop.classList.add("opacity-0", "pointer-events-none");
+          selectBackdrop.classList.remove("opacity-100");
+        }, 200);
+      }
+
+      selectBtn.addEventListener("click", openSelectModal);
+      selectCloseBtn.addEventListener("click", closeSelectModal);
+
+      selectBackdrop.addEventListener("mousedown", e => {
+        if (e.target === selectBackdrop) closeSelectModal();
+      });
+
+      /* =======================================================
+         SUBMIT DO FORM
+      ======================================================= */
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+
+        // CPF inválido?
+        if (!validarCPF(cpf.value)) {
+          cpfError.classList.remove("hidden");
+          return;
+        }
+
+        // Obra inválida?
+        if (!obras.includes(input.value)) {
+          errorText.classList.remove("hidden");
+          return;
+        }
+
+        openModal();
+      });
+    </script>
+
+  </body>
+</html>
